@@ -1,6 +1,6 @@
 import numpy as np
 
-from spconv.utils import VoxelGeneratorV2
+from spconv.pytorch.utils import VoxelGeneratorV2
 from second.protos import voxel_generator_pb2
 
 

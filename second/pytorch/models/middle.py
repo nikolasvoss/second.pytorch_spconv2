@@ -1,7 +1,7 @@
 import time
 
 import numpy as np
-import spconv
+import spconv.pytorch as spconv
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -474,7 +474,7 @@ class SpMiddleFHDLite(nn.Module):
                                       batch_size)
         ret = self.middle_conv(ret)
 
-        # ret.features = F.relu(ret.features)
+        # ret = ret.replace_features(F.relu(ret.features))
         # print(self.middle_conv.fused())
         ret = ret.dense()
 

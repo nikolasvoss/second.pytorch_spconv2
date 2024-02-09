@@ -10,7 +10,7 @@ from torchplus.tools import torch_to_np_dtype
 from second.core.non_max_suppression.nms_gpu import (nms_gpu_cc, rotate_iou_gpu,
                                                        rotate_nms_gpu)
 from second.core.non_max_suppression.nms_cpu import rotate_nms_cc
-import spconv
+import spconv.pytorch as spconv
 
 def second_box_encode(boxes, anchors, encode_angle_to_vector=False, smooth_dim=False):
     """box encode for VoxelNet
@@ -476,17 +476,17 @@ def nms(bboxes,
     else:
         return torch.from_numpy(keep).long().to(bboxes.device)
 
-def nms_v2(bboxes,
-        scores,
-        pre_max_size=None,
-        post_max_size=None,
-        iou_threshold=0.5):
-    if pre_max_size is None:
-        pre_max_size = -1
-    if post_max_size is None:
-        post_max_size = -1
-    res = spconv.ops.nms(bboxes.cpu(), scores.cpu(), pre_max_size, post_max_size, iou_threshold, 1.0)
-    return res.to(bboxes.device)
+# def nms_v2(bboxes,
+#         scores,
+#         pre_max_size=None,
+#         post_max_size=None,
+#         iou_threshold=0.5):
+#     if pre_max_size is None:
+#         pre_max_size = -1
+#     if post_max_size is None:
+#         post_max_size = -1
+#     res = spconv.ops.nms(bboxes.cpu(), scores.cpu(), pre_max_size, post_max_size, iou_threshold, 1.0)
+#     return res.to(bboxes.device)
 
 
 def rotate_nms(rbboxes,
