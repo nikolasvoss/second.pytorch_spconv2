@@ -57,7 +57,7 @@ def example_convert_to_torch(example, dtype=torch.float32,
 
 def build_network(model_cfg, measure_time=False):
     voxel_generator = voxel_builder.build(model_cfg.voxel_generator)
-    bv_range = voxel_generator.point_cloud_range[[0, 1, 3, 4]]
+    bv_range = voxel_generator.coors_range_xyz[[0, 1, 3, 4]]
     box_coder = box_coder_builder.build(model_cfg.box_coder)
     target_assigner_cfg = model_cfg.target_assigner
     target_assigner = target_assigner_builder.build(target_assigner_cfg,

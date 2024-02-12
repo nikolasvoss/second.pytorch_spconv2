@@ -1,7 +1,4 @@
 # %%
-%load_ext autoreload
-%autoreload 2
-%matplotlib inline
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
@@ -19,7 +16,7 @@ from second.utils import config_tool
 # ## Read Config file
 
 # %%
-config_path = "/home/yy/deeplearning/deeplearning/mypackages/second/configs/car.lite.nb.config"
+config_path = "/home/niko/second.pytorch_spconv2/second/configs/nuscenes/all.fhd.config"
 config = pipeline_pb2.TrainEvalPipelineConfig()
 with open(config_path, "r") as f:
     proto_str = f.read()

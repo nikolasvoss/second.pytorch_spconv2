@@ -8,7 +8,7 @@ from scipy.interpolate import interp1d
 from second.core.non_max_suppression.nms_gpu import rotate_iou_gpu_eval
 from second.core import box_np_ops
 
-@numba.jit
+@numba.jit(nopython=False)
 def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
     scores.sort()
     scores = scores[::-1]
