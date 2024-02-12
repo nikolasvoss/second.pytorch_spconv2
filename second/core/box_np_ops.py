@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numba
 import numpy as np
-from spconv.pytorch.utils import rbbox_iou, rbbox_intersection
+from spconv.utils import rbbox_iou, rbbox_intersection
 
 from second.core.geometry import points_in_convex_polygon_3d_jit, points_count_convex_polygon_3d_jit
 
