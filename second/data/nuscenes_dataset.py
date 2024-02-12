@@ -714,11 +714,13 @@ def _fill_trainval_infos(nusc,
     return train_nusc_infos, val_nusc_infos
 
 
+# Definiert eine Funktion zum Erstellen von Informationsdateien für NuScenes-Datensätze
 def create_nuscenes_infos(root_path, version="v1.0-trainval", max_sweeps=10):
     from nuscenes.nuscenes import NuScenes
     nusc = NuScenes(version=version, dataroot=root_path, verbose=True)
     from nuscenes.utils import splits
     available_vers = ["v1.0-trainval", "v1.0-test", "v1.0-mini"]
+    # Überprüft, ob die angegebene Version in der Liste der verfügbaren Versionen enthalten ist
     assert version in available_vers
     if version == "v1.0-trainval":
         train_scenes = splits.train
@@ -730,33 +732,45 @@ def create_nuscenes_infos(root_path, version="v1.0-trainval", max_sweeps=10):
         train_scenes = splits.mini_train
         val_scenes = splits.mini_val
     else:
+        # Löst eine Ausnahme aus, wenn eine unbekannte Version angegeben wird
         raise ValueError("unknown")
+    # Überprüft, ob es sich um einen Testdatensatz handelt, basierend darauf, ob 'test' im Versionsnamen enthalten ist
     test = "test" in version
+    # Konvertiert den root Pfad in ein Pathlib-Path-Objekt
     root_path = Path(root_path)
-    # filter exist scenes. you may only download part of dataset.
+    # Ruft eine Liste der verfügbaren Szenen ab
     available_scenes = _get_available_scenes(nusc)
+    # Erstellt eine Liste von Namen verfügbarer Szenen
     available_scene_names = [s["name"] for s in available_scenes]
+    # Filtert die Szenen für das Training, um sicherzustellen, dass nur verfügbare Szenen verwendet werden
     train_scenes = list(
         filter(lambda x: x in available_scene_names, train_scenes))
+    # Filtert die Szenen für die Validierung
     val_scenes = list(filter(lambda x: x in available_scene_names, val_scenes))
+    # Konvertiert Trainingszenen in eine Menge von Szenen-Token
     train_scenes = set([
         available_scenes[available_scene_names.index(s)]["token"]
         for s in train_scenes
     ])
+    # Konvertiert Validierungszenen in eine Menge von Szenen-Token
     val_scenes = set([
         available_scenes[available_scene_names.index(s)]["token"]
         for s in val_scenes
     ])
+    # Ausgabe von Informationen über die Anzahl der Szenen
     if test:
         print(f"test scene: {len(train_scenes)}")
     else:
         print(
             f"train scene: {len(train_scenes)}, val scene: {len(val_scenes)}")
+    # Erstellt Trainings- und Validierungsinformationen für die definierten Szenen
     train_nusc_infos, val_nusc_infos = _fill_trainval_infos(
         nusc, train_scenes, val_scenes, test, max_sweeps=max_sweeps)
+    # Erstellt einen Metadatensatz mit Versionsinformationen
     metadata = {
         "version": version,
     }
+    # Speichert die Informationen und Metadaten in .pkl-Dateien
     if test:
         print(f"test sample: {len(train_nusc_infos)}")
         data = {
@@ -766,15 +780,18 @@ def create_nuscenes_infos(root_path, version="v1.0-trainval", max_sweeps=10):
         with open(root_path / "infos_test.pkl", 'wb') as f:
             pickle.dump(data, f)
     else:
+        # Ausgabe von Informationen über die Anzahl der Trainings- und Validierungsbeispiele
         print(
             f"train sample: {len(train_nusc_infos)}, val sample: {len(val_nusc_infos)}"
         )
+        # Schreibt Trainingsdaten in eine Datei
         data = {
             "infos": train_nusc_infos,
             "metadata": metadata,
         }
         with open(root_path / "infos_train.pkl", 'wb') as f:
             pickle.dump(data, f)
+        # Schreibt Validierungsdaten in eine separate Datei
         data["infos"] = val_nusc_infos
         with open(root_path / "infos_val.pkl", 'wb') as f:
             pickle.dump(data, f)
