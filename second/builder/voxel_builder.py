@@ -1,5 +1,5 @@
 import numpy as np
-
+import torch
 from spconv.pytorch.utils import PointToVoxel
 # from second.protos import voxel_generator_pb2
 
@@ -27,5 +27,6 @@ def build(voxel_config):
         coors_range_xyz=list(voxel_config.point_cloud_range),
         num_point_features=3, # 3 is for point's xyz?
         max_num_voxels=20000,
-        max_num_points_per_voxel=voxel_config.max_number_of_points_per_voxel)
+        max_num_points_per_voxel=voxel_config.max_number_of_points_per_voxel,
+        device=torch.device("cpu:0"))
     return voxel_generator
