@@ -16,7 +16,7 @@ from second.utils import config_tool
 # ## Read Config file
 
 # %%
-config_path = "/home/niko/second.pytorch_spconv2/second/configs/nuscenes/all.fhd.config"
+config_path = ("/home/niko/second.pytorch_spconv2/second/configs/nuscenes/all.fhd.config")
 config = pipeline_pb2.TrainEvalPipelineConfig()
 with open(config_path, "r") as f:
     proto_str = f.read()
@@ -31,7 +31,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # ## Build Network, Target Assigner and Voxel Generator
 
 # %%
-ckpt_path = "/home/yy/pretrained_models_v1.5/car_lite/voxelnet-15500.tckpt"
+ckpt_path = "/home/niko/Documents/pretrained_models_v1.5/pp_model_for_nuscenes_pretrain/voxelnet-296960.tckpt"
 net = build_network(model_cfg).to(device).eval()
 net.load_state_dict(torch.load(ckpt_path))
 target_assigner = net.target_assigner
