@@ -81,7 +81,7 @@ def is_line_segment_cross(lines1, lines2):
         _ccw(A, B, C) != _ccw(A, B, D))
 
 
-@numba.jit(nopython=False)
+@numba.jit(nopython=True)
 def surface_equ_3d_jit(polygon_surfaces):
     # return [a, b, c], d in ax+by+cz+d=0
     # polygon_surfaces: [num_polygon, num_surfaces, num_points_of_polygon, 3]
@@ -94,7 +94,7 @@ def surface_equ_3d_jit(polygon_surfaces):
     return normal_vec, -d
 
 
-@numba.jit(nopython=False)
+@numba.jit(nopython=True)
 def points_in_convex_polygon_3d_jit_v1(points,
                                     polygon_surfaces,
                                     num_surfaces=None):
@@ -269,7 +269,7 @@ def _points_count_convex_polygon_3d_jit(points,
     return ret
 
 
-@numba.jit(nopython=False)
+@numba.jit(nopython=True)
 def points_in_convex_polygon_jit(points, polygon, clockwise=True):
     """check points is in 2d convex polygons. True when point in polygon
     Args:
