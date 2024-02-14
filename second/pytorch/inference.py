@@ -25,7 +25,12 @@ class TorchInferenceContext(InferenceContext):
         train_cfg = config.train_config
         batch_size = 1
         voxel_generator = voxel_builder.build(model_cfg.voxel_generator)
-        bv_range = voxel_generator.point_cloud_range[[0, 1, 3, 4]]
+        bv_range = [
+            voxel_generator.coors_range[0],
+            voxel_generator.coors_range[1],
+            voxel_generator.coors_range[3],
+            voxel_generator.coors_range[4]
+        ]
         grid_size = voxel_generator.grid_size
         self.voxel_generator = voxel_generator
         vfe_num_filters = list(model_cfg.voxel_feature_extractor.num_filters)

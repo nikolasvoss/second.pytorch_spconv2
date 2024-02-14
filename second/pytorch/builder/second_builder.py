@@ -28,7 +28,7 @@ def build(model_cfg: second_pb2.VoxelNet, voxel_generator,
     vfe_num_filters = list(model_cfg.voxel_feature_extractor.num_filters)
     vfe_with_distance = model_cfg.voxel_feature_extractor.with_distance
     grid_size = voxel_generator.grid_size
-    dense_shape = [1] + grid_size[::-1].tolist() + [vfe_num_filters[-1]]
+    dense_shape = [1] + grid_size[::-1] + [vfe_num_filters[-1]]
     classes_cfg = model_cfg.target_assigner.class_settings
     num_class = len(classes_cfg)
     use_mcnms = [c.use_multi_class_nms for c in classes_cfg]

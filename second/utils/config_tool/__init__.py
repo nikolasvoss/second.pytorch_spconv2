@@ -16,10 +16,10 @@ def read_config(path):
 
 def change_detection_range(model_config, new_range):
     assert len(new_range) == 4, "you must provide a list such as [-50, -50, 50, 50]"
-    old_pc_range = list(model_config.voxel_generator.point_cloud_range)
+    old_pc_range = list(model_config.voxel_generator.coors_range)
     old_pc_range[:2] = new_range[:2]
     old_pc_range[3:5] = new_range[2:]
-    model_config.voxel_generator.point_cloud_range[:] = old_pc_range
+    model_config.voxel_generator.coors_range[:] = old_pc_range
     for anchor_generator in model_config.target_assigner.class_settings: #anchor_generators:
         a_type = anchor_generator.WhichOneof('anchor_generator')
         if a_type == "anchor_generator_range":

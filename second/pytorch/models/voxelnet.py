@@ -144,8 +144,8 @@ class VoxelNet(nn.Module):
             use_norm,
             num_filters=vfe_num_filters,
             with_distance=with_distance,
-            voxel_size=self.voxel_generator.voxel_size,
-            pc_range=self.voxel_generator.point_cloud_range,
+            voxel_size=self.voxel_generator.vsize,
+            pc_range=self.voxel_generator.coors_range,
         )
         self.middle_feature_extractor = middle.get_middle_class(middle_class_name)(
             output_shape,
