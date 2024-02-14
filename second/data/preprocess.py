@@ -16,7 +16,9 @@ from second.utils import simplevis
 from second.utils.timer import simple_timer
 
 import seaborn as sns
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+
+import torch
 
 def merge_second_batch(batch_list):
     example_merged = defaultdict(list)
@@ -247,7 +249,7 @@ def prep_pointcloud(input_dict,
                     points = points[np.logical_not(masks.any(-1))]
 
                 points = np.concatenate([sampled_points, points], axis=0)
-        pc_range = voxel_generator.point_cloud_range
+        pc_range = voxel_generator.coors_range
         group_ids = None
         if "group_ids" in gt_dict:
             group_ids = gt_dict["group_ids"]
@@ -277,7 +279,12 @@ def prep_pointcloud(input_dict,
         gt_dict["gt_boxes"], points = prep.global_scaling_v2(
             gt_dict["gt_boxes"], points, *global_scaling_noise)
         prep.global_translate_(gt_dict["gt_boxes"], points, global_translate_noise_std)
-        bv_range = voxel_generator.point_cloud_range[[0, 1, 3, 4]]
+        bv_range = [
+            voxel_generator.coors_range[0],
+            voxel_generator.coors_range[1],
+            voxel_generator.coors_range[3],
+            voxel_generator.coors_range[4]
+        ]
         mask = prep.filter_gt_box_outside_range_by_center(gt_dict["gt_boxes"], bv_range)
         _dict_select(gt_dict, mask)
 
@@ -294,14 +301,14 @@ def prep_pointcloud(input_dict,
         np.random.shuffle(points)
 
     # [0, -40, -3, 70.4, 40, 1]
-    voxel_size = voxel_generator.voxel_size
-    pc_range = voxel_generator.point_cloud_range
+    voxel_size = voxel_generator.vsize
+    pc_range = voxel_generator.coors_range
     grid_size = voxel_generator.grid_size
     # [352, 400]
     t1 = time.time()
     if not multi_gpu:
-        res = voxel_generator.generate(
-            points, max_voxels)
+        res = voxel_generator(
+            torch.tensor(points))#, max_voxels)
         voxels = res["voxels"]
         coordinates = res["coordinates"]
         num_points = res["num_points_per_voxel"]
