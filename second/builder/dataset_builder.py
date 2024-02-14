@@ -62,8 +62,18 @@ def build(input_reader_config,
     db_sampler = None
     if len(db_sampler_cfg.sample_groups) > 0 or db_sampler_cfg.database_info_path != "":  # enable sample
         db_sampler = dbsampler_builder.build(db_sampler_cfg)
+    # Original grid size
     grid_size = voxel_generator.grid_size
+    # Calculate the feature map size by performing integer division on the first two dimensions of the grid size.
+    # This effectively downscales the grid size by the factor.
     feature_map_size = grid_size[:2] // out_size_factor
+    # Check if any of the dimensions have become 0 after downsizing
+    if 0 in feature_map_size:
+        print("Warning: feature_map_size has a dimension of size 0. "
+              "Please ensure that the out_size_factor is appropriately chosen to avoid empty dimensions. "
+              f"Suggested action: Choose an out_size_factor less than {min(grid_size[:2])}.")
+    # Extend the feature map size by adding a dimension of size 1, and then reverse the dimensions of the feature map.
+    # The reversal is done by the [::-1] slicing operation.
     feature_map_size = [*feature_map_size, 1][::-1]
     print("feature_map_size", feature_map_size)
     assert all([n != '' for n in target_assigner.classes]), "you must specify class_name in anchor_generators."
