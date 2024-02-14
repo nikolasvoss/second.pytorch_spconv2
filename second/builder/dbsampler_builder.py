@@ -17,7 +17,8 @@ def build(sampler_config):
     rate = cfg.rate
     grot_range = cfg.global_random_rotation_range_per_object
     groups = [dict(g.name_to_max_num) for g in groups]
-    info_path = cfg.database_info_path
+    # @Nikolas: hardcoded path!!!
+    info_path = "/media/NAS_lectures/00_deep_learning/Datasets/nuscenes/v1.0-trainval/" + cfg.database_info_path
     with open(info_path, 'rb') as f:
         db_infos = pickle.load(f)
     grot_range = list(grot_range)

@@ -60,10 +60,10 @@ class NuScenesDataset(Dataset):
         self._root_path = Path(root_path)
         with open(info_path, 'rb') as f:
             data = pickle.load(f)
-        self._nusc_infos = data["infos"]
+        self._nusc_infos = data
         self._nusc_infos = list(
             sorted(self._nusc_infos, key=lambda e: e["timestamp"]))
-        self._metadata = data["metadata"]
+        # self._metadata = data["metadata"]
         self._class_names = class_names
         self._prep_func = prep_func
         # kitti map: nusc det name -> kitti eval name
@@ -71,7 +71,7 @@ class NuScenesDataset(Dataset):
             "car": "car",
             "pedestrian": "pedestrian",
         }  # we only eval these classes in kitti
-        self.version = self._metadata["version"]
+        self.version = "v1.0-trainval"  # @Nikolas: version hardcoded since to stupid for fix
         self.eval_version = "cvpr_2019"
         self._with_velocity = False
 
@@ -138,6 +138,7 @@ class NuScenesDataset(Dataset):
 
     def __getitem__(self, idx):
         input_dict = self.get_sensor_data(idx)
+        # @Nikolas: Error handling!!!!
         example = self._prep_func(input_dict=input_dict)
         example["metadata"] = input_dict["metadata"]
         if "anchors_mask" in example:
@@ -162,7 +163,8 @@ class NuScenesDataset(Dataset):
                 "token": info["token"]
             },
         }
-        lidar_path = Path(info['lidar_path'])
+        # @Nikolas: I think this is the part where the data is loaded and we are to stupid !!!!! > Hardcoded
+        lidar_path = Path("/media/NAS_lectures/00_deep_learning/Datasets/nuscenes/v1.0-trainval/") / Path(info['lidar_path'])
         points = np.fromfile(
             str(lidar_path), dtype=np.float32, count=-1).reshape([-1, 5])
         points[:, 3] /= 255
@@ -170,6 +172,7 @@ class NuScenesDataset(Dataset):
         sweep_points_list = [points]
         ts = info["timestamp"] / 1e6
 
+        # @Nikolas: yet no sweeps!!
         for sweep in info["sweeps"]:
             points_sweep = np.fromfile(
                 str(sweep["lidar_path"]), dtype=np.float32,
