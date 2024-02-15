@@ -109,9 +109,9 @@ class TargetAssigner:
             def similarity_fn(anchors, gt_boxes):
                 anchors_rbv = anchors[:, [0, 1, 3, 4, 6]]
                 gt_boxes_rbv = gt_boxes[:, [0, 1, 3, 4, 6]]
-                return self._sim_calcs[anchor_gene_idx].compare(
-                    anchors_rbv, gt_boxes_rbv)
-
+                ret = self._sim_calcs[anchor_gene_idx]
+                ret = ret.compare(anchors_rbv, gt_boxes_rbv)
+                return ret
             mask = np.array([c == class_name for c in gt_names],
                             dtype=np.bool_)
             feature_map_size = anchor_dict["anchors"].shape[:3]
@@ -126,7 +126,7 @@ class TargetAssigner:
             # print(f"num of {class_name}:", np.sum(mask))
             targets = create_target_np(
                 anchor_dict["anchors"].reshape(-1, self.box_ndim),
-                gt_boxes[mask],
+                gt_boxes,#[mask],
                 similarity_fn,
                 box_encoding_fn,
                 prune_anchor_fn=prune_anchor_fn,
