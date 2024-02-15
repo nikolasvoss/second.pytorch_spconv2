@@ -463,11 +463,14 @@ def rbbox3d_to_bev_corners(rbboxes, origin=0.5):
 
 
 def minmax_to_corner_2d(minmax_box):
+    # Calculate the number of dimensions of the box, assuming minmax_box is of shape (..., 2 * ndim)
     ndim = minmax_box.shape[-1] // 2
+    # Get the minimum corner of the box as the center
     center = minmax_box[..., :ndim]
+    # Calculate the distance (dimensions) from the center to the maximum corner
     dims = minmax_box[..., ndim:] - center
+    # Use center and dimensions to get the corner coordinates of a 2D box
     return center_to_corner_box2d(center, dims, origin=0.0)
-
 
 def minmax_to_corner_2d_v2(minmax_box):
     # N, 4 -> N 4 2
@@ -693,7 +696,7 @@ def remove_outside_points(points, rect, Trv2c, P2, image_shape):
     return points
 
 
-@numba.jit(nopython=True)
+#@numba.jit(nopython=True)
 def iou_jit(boxes, query_boxes, eps=1.0):
     """calculate box iou. note that jit version runs 2x faster than cython in 
     my machine!

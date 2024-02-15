@@ -157,12 +157,18 @@ def filter_gt_box_outside_range_by_center(gt_boxes, limit_range):
         gt_boxes ([type]): [description]
         limit_range ([type]): [description]
     """
+    # Extract the centers of the ground truth boxes, assuming gt_boxes are in the format [x_center, y_center, z_center, ...]
     gt_box_centers = gt_boxes[:, :2]
+
+    # Convert the provided limit_range into a 2D bounding box with corner coordinates
     bounding_box = box_np_ops.minmax_to_corner_2d(
         np.asarray(limit_range)[np.newaxis, ...])
-    ret = points_in_convex_polygon_jit(gt_box_centers, bounding_box)
-    return ret.reshape(-1)
 
+    # Determine if the center points of the ground truth boxes are inside the 2D bounding box
+    ret = points_in_convex_polygon_jit(gt_box_centers, bounding_box)
+
+    # Reshape the result to a 1D boolean array indicating whether each ground truth box is inside the limit range
+    return ret.reshape(-1)
 
 def filter_gt_low_points(gt_boxes,
                          points,

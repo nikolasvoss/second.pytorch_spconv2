@@ -269,40 +269,52 @@ def _points_count_convex_polygon_3d_jit(points,
     return ret
 
 
-@numba.jit(nopython=True)
 def points_in_convex_polygon_jit(points, polygon, clockwise=True):
     """check points is in 2d convex polygons. True when point in polygon
-    Args:
-        points: [num_points, 2] array.
-        polygon: [num_polygon, num_points_of_polygon, 2] array.
-        clockwise: bool. indicate polygon is clockwise.
-    Returns:
-        [num_points, num_polygon] bool array.
+        Args:
+            points: [num_points, 2] array.
+            polygon: [num_polygon, num_points_of_polygon, 2] array.
+            clockwise: bool. indicate polygon is clockwise.
+        Returns:
+            [num_points, num_polygon] bool array.
     """
-    # first convert polygon to directed lines
+    # Initialize the size of the polygon and the number of points to check
     num_points_of_polygon = polygon.shape[1]
     num_points = points.shape[0]
     num_polygons = polygon.shape[0]
+
+    # Calculate vectors based on the orientation of the polygon (clockwise or counter-clockwise)
     if clockwise:
         vec1 = polygon - polygon[:, [num_points_of_polygon - 1] +
-                                 list(range(num_points_of_polygon - 1)), :]
+                                    list(range(num_points_of_polygon - 1)), :]
     else:
         vec1 = polygon[:, [num_points_of_polygon - 1] +
-                       list(range(num_points_of_polygon - 1)), :] - polygon
-    # vec1: [num_polygon, num_points_of_polygon, 2]
+                          list(range(num_points_of_polygon - 1)), :] - polygon
+
+    # Initialize a return array filled with zeros and typecast it to boolean
     ret = np.zeros((num_points, num_polygons), dtype=np.bool_)
+
+    # Temp variables used for calculations
     success = True
     cross = 0.0
+
+    # Iterate over each point to determine if it lies inside each polygon
     for i in range(num_points):
         for j in range(num_polygons):
-            success = True
+            success = True  # Reset the success flag for the new point-polygon pair
+            # Check the point against each edge of the polygon
             for k in range(num_points_of_polygon):
+                # Calculate the cross product between the edge vector and the vector from point to polygon vertex
                 cross = vec1[j, k, 1] * (polygon[j, k, 0] - points[i, 0])
                 cross -= vec1[j, k, 0] * (polygon[j, k, 1] - points[i, 1])
+                # If cross product is non-negative, the point is outside this edge, break to next polygon
                 if cross >= 0:
                     success = False
                     break
+            # Store the result for the current point-polygon pair
             ret[i, j] = success
+
+    # Return the boolean array representing the inclusion of points in polygons
     return ret
 
 def points_in_convex_polygon(points, polygon, clockwise=True):
