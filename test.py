@@ -18,7 +18,7 @@ def main_pytorch_voxel_gen_cuda():
         gen = PointToVoxel(vsize_xyz=[0.25, 0.25, 0.25],
                         coors_range_xyz=[0, 0, 0, 10, 10, 10],
                         num_point_features=3,
-                        max_num_voxels=5000,
+                        max_number_of_voxels=5000,
                         max_num_points_per_voxel=5,
                         device=device)
 
@@ -50,7 +50,7 @@ main_pytorch_voxel_gen_cuda()
 gen = PointToVoxel(vsize_xyz=[0.1, 0.1, 0.1],
                        coors_range_xyz=[-80, -80, -6, 80, 80, 6],
                        num_point_features=3,
-                       max_num_voxels=5000,
+                       max_number_of_voxels=5000,
                        max_num_points_per_voxel=5,
                        device=device)
 sample_pc =np.random.rand(25000,3).astype(np.float32)

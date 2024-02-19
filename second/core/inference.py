@@ -58,7 +58,7 @@ class InferenceContext:
             root_path=str(self.root_path),
             voxel_generator=self.voxel_generator,
             target_assigner=self.target_assigner,
-            max_voxels=input_cfg.max_number_of_voxels,
+            max_number_of_voxels=input_cfg.max_number_of_voxels,
             class_names=self.target_assigner.classes,
             training=False,
             create_targets=False,

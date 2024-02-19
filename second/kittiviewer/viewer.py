@@ -271,7 +271,7 @@ class KittiPointCloudView(KittiGLViewWidget):
                  parent=None,
                  voxel_size=None,
                  coors_range=None,
-                 max_voxels=50000,
+                 max_number_of_voxels=50000,
                  max_num_points=35):
         super().__init__(parent=parent)
         if voxel_size is None:
@@ -281,7 +281,7 @@ class KittiPointCloudView(KittiGLViewWidget):
         self.w_config = config
         self._voxel_size = voxel_size
         self._coors_range = coors_range
-        self._max_voxels = max_voxels
+        self._max_number_of_voxels = max_number_of_voxels
         self._max_num_points = max_num_points
         bk_color = (0.8, 0.8, 0.8, 1.0)
         bk_color = list([int(v * 255) for v in bk_color])
@@ -393,7 +393,7 @@ class KittiPointCloudView(KittiGLViewWidget):
                 coors_range,
                 self._max_num_points,
                 reverse_index=True,
-                max_voxels=self._max_voxels)
+                max_number_of_voxels=self._max_number_of_voxels)
 
             # print(np.min(coors, 0), np.max(coors, 0))
             dense_voxel_map = box_np_ops.sparse_sum_for_anchors_mask(
@@ -513,7 +513,7 @@ class KittiPointCloudView(KittiGLViewWidget):
                 coors_range,
                 self._max_num_points,
                 reverse_index=True,
-                max_voxels=self._max_voxels)
+                max_number_of_voxels=self._max_number_of_voxels)
 
             # print(np.min(coors, 0), np.max(coors, 0))
             dense_voxel_map = box_np_ops.sparse_sum_for_anchors_mask(
@@ -576,7 +576,7 @@ class KittiPointCloudView(KittiGLViewWidget):
             coors_range,
             self._max_num_points,
             reverse_index=True,
-            max_voxels=self._max_voxels)
+            max_number_of_voxels=self._max_number_of_voxels)
         # print("num_voxels", num_points.shape[0])
         """
         total_num_points = 0

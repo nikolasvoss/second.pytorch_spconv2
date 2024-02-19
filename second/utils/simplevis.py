@@ -16,7 +16,7 @@ def _points_to_bevmap_reverse_kernel(
         height_lowers,
         # density_norm_num=16,
         with_reflectivity=False,
-        max_voxels=40000):
+        max_number_of_voxels=40000):
     # put all computations to one loop.
     # we shouldn't create large array in main jit code, otherwise
     # reduce performance
@@ -44,7 +44,7 @@ def _points_to_bevmap_reverse_kernel(
         voxelidx = coor_to_voxelidx[coor[0], coor[1], coor[2]]
         if voxelidx == -1:
             voxelidx = voxel_num
-            if voxel_num >= max_voxels:
+            if voxel_num >= max_number_of_voxels:
                 break
             voxel_num += 1
             coor_to_voxelidx[coor[0], coor[1], coor[2]] = voxelidx
@@ -65,7 +65,7 @@ def points_to_bev(points,
                   coors_range,
                   with_reflectivity=False,
                   density_norm_num=16,
-                  max_voxels=40000):
+                  max_number_of_voxels=40000):
     """convert kitti points(N, 4) to a bev map. return [C, H, W] map.
     this function based on algorithm in points_to_voxel.
     takes 5ms in a reduced pointcloud with voxel_size=[0.1, 0.1, 0.8]
@@ -91,7 +91,7 @@ def points_to_bev(points,
     voxelmap_shape = tuple(np.round(voxelmap_shape).astype(np.int32).tolist())
     voxelmap_shape = voxelmap_shape[::-1]  # DHW format
     coor_to_voxelidx = -np.ones(shape=voxelmap_shape, dtype=np.int32)
-    # coors_2d = np.zeros(shape=(max_voxels, 2), dtype=np.int32)
+    # coors_2d = np.zeros(shape=(max_number_of_voxels, 2), dtype=np.int32)
     bev_map_shape = list(voxelmap_shape)
     bev_map_shape[0] += 1
     height_lowers = np.linspace(
@@ -101,7 +101,7 @@ def points_to_bev(points,
     bev_map = np.zeros(shape=bev_map_shape, dtype=points.dtype)
     _points_to_bevmap_reverse_kernel(points, voxel_size, coors_range,
                                      coor_to_voxelidx, bev_map, height_lowers,
-                                     with_reflectivity, max_voxels)
+                                     with_reflectivity, max_number_of_voxels)
     # print(voxel_num)
     return bev_map
 
@@ -109,14 +109,14 @@ def points_to_bev(points,
 def point_to_vis_bev(points,
                      voxel_size=None,
                      coors_range=None,
-                     max_voxels=80000):
+                     max_number_of_voxels=80000):
     if voxel_size is None:
         voxel_size = [0.1, 0.1, 0.1]
     if coors_range is None:
         coors_range = [-50, -50, -3, 50, 50, 1]
     voxel_size[2] = coors_range[5] - coors_range[2]
     bev_map = points_to_bev(
-        points, voxel_size, coors_range, max_voxels=max_voxels)
+        points, voxel_size, coors_range, max_number_of_voxels=max_number_of_voxels)
     height_map = (bev_map[0] * 255).astype(np.uint8)
     return cv2.cvtColor(height_map, cv2.COLOR_GRAY2RGB)
 

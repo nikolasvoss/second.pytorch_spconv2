@@ -68,7 +68,7 @@ v_path = info["point_cloud"]['velodyne_path']
 v_path = str(root_path / v_path)
 points = np.fromfile(
     v_path, dtype=np.float32, count=-1).reshape([-1, 4])
-voxels, coords, num_points = voxel_generator.generate(points, max_voxels=90000)
+voxels, coords, num_points = voxel_generator.generate(points, max_number_of_voxels=90000)
 print(voxels.shape)
 # add batch idx to coords
 coords = np.pad(coords, ((0, 0), (1, 0)), mode='constant', constant_values=0)

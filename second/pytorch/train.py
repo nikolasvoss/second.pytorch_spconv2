@@ -239,8 +239,8 @@ def train(config_path,
         loss_scale = "dynamic"
     # Set up the learning rate scheduler, enable mixed precision training if specified
     if train_cfg.enable_mixed_precision:
-        max_num_voxels = input_cfg.preprocess.max_number_of_voxels * input_cfg.batch_size
-        assert max_num_voxels < 65535, "spconv fp16 training only support this"
+        max_number_of_voxels = input_cfg.preprocess.max_number_of_voxels * input_cfg.batch_size
+        assert max_number_of_voxels < 65535, "spconv fp16 training only support this"
         from apex import amp
         net, amp_optimizer = amp.initialize(net, fastai_optimizer,
                                         opt_level="O2",
@@ -336,7 +336,7 @@ def train(config_path,
                 net.clear_metrics() # Clear metrics after each epoch if specified
 
             # Iterate over the training data using the DataLoader
-            for example in dataloader:
+            for example in dataloader: # TODO: rename example to batch
                 lr_scheduler.step(net.get_global_step())  # Update the learning rate scheduler
                 time_metrics = example["metrics"]  # Extract timing metrics if available
                 example.pop("metrics")  # Remove metrics from the example to clean up data

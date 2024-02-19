@@ -103,7 +103,7 @@ def prep_pointcloud(input_dict,
                     voxel_generator,
                     target_assigner,
                     db_sampler=None,
-                    max_voxels=20000,
+                    max_number_of_voxels=20000,
                     remove_outside_points=False,
                     training=True,
                     create_targets=True,
@@ -308,14 +308,14 @@ def prep_pointcloud(input_dict,
     t1 = time.time()
     if not multi_gpu:
         res = voxel_generator(
-            torch.tensor(points))#, max_voxels)
+            torch.tensor(points))#, max_number_of_voxels)
         voxels = res["voxels"]
         coordinates = res["coordinates"]
         num_points = res["num_points_per_voxel"]
         num_voxels = np.array([voxels.shape[0]], dtype=np.int64)
     else:
         res = voxel_generator.generate_multi_gpu(
-            points, max_voxels)
+            points, max_number_of_voxels)
         voxels = res["voxels"]
         coordinates = res["coordinates"]
         num_points = res["num_points_per_voxel"]
