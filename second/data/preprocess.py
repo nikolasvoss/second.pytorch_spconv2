@@ -318,19 +318,17 @@ def prep_pointcloud(input_dict,
     # [352, 400]
     t1 = time.time()
     if not multi_gpu:
-        res = voxel_generator(
-            torch.tensor(points))#, max_number_of_voxels)
-        voxels = res["voxels"]
-        coordinates = res["coordinates"]
-        num_points = res["num_points_per_voxel"]
+        voxels, coordinates, num_points = voxel_generator(torch.tensor(points))
         num_voxels = np.array([voxels.shape[0]], dtype=np.int64)
     else:
-        res = voxel_generator.generate_multi_gpu(
-            points, max_number_of_voxels)
-        voxels = res["voxels"]
-        coordinates = res["coordinates"]
-        num_points = res["num_points_per_voxel"]
-        num_voxels = np.array([res["voxel_num"]], dtype=np.int64)
+        print("Currently not support multi_gpu")
+        raise NotImplementedError
+        # res = voxel_generator.generate_multi_gpu(
+        #     points, max_number_of_voxels)
+        # voxels = res["voxels"]
+        # coordinates = res["coordinates"]
+        # num_points = res["num_points_per_voxel"]
+        # num_voxels = np.array([res["voxel_num"]], dtype=np.int64)
     metrics["voxel_gene_time"] = time.time() - t1
     example = {
         'voxels': voxels,
