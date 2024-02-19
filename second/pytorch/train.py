@@ -149,19 +149,26 @@ def train(config_path,
     """train a VoxelNet model specified by a config file.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+
+    # Ensure the model directory is an absolute path
     model_dir = str(Path(model_dir).resolve())
+    # If 'create_folder' flag is set, make a new folder if necessary
     if create_folder:
         if Path(model_dir).exists():
             model_dir = torchplus.train.create_folder(model_dir)
     model_dir = Path(model_dir)
+    # Raise an error if not resuming training and the model directory already exists
     if not resume and model_dir.exists():
         raise ValueError("model dir exists and you don't specify resume.")
+    # Create model directory if it does not exist
     model_dir.mkdir(parents=True, exist_ok=True)
+    # Set default result path if not provided
     if result_path is None:
         result_path = model_dir / 'results'
+    # Backup the configuration file for the model
     config_file_bkp = "pipeline.config"
-    if isinstance(config_path, str):
+    # Read the configuration for the model based on whether a filepath or object have been provided
+    if isinstance(config_path, str): # If a filepath is provided, read config from it
         # directly provide a config object. this usually used
         # when you want to train with several different parameters in
         # one script.
@@ -169,31 +176,39 @@ def train(config_path,
         with open(config_path, "r") as f:
             proto_str = f.read()
             text_format.Merge(proto_str, config)
-    else:
+    else:  # Config is directly provided as an object
         config = config_path
         proto_str = text_format.MessageToString(config, indent=2)
+    # Write the configuration to a file in the model directory
     with (model_dir / config_file_bkp).open("w") as f:
         f.write(proto_str)
 
+    # Parse config for different parts of the model
     input_cfg = config.train_input_reader
     eval_input_cfg = config.eval_input_reader
     model_cfg = config.model.second
     train_cfg = config.train_config
 
+    # Build the network and move it to the device (GPU or CPU)
     net = build_network(model_cfg, measure_time).to(device)
     # if train_cfg.enable_mixed_precision:
     #     net.half()
     #     net.metrics_to_float()
     #     net.convert_norm_to_float(net)
+    # Initialize variables for the target assigner and voxel generator
     target_assigner = net.target_assigner
     voxel_generator = net.voxel_generator
+    # Print the total number of parameters in the network
     print("num parameters:", len(list(net.parameters())))
+    # Try to restore the latest checkpoints (if any)
     torchplus.train.try_restore_latest_checkpoints(model_dir, [net])
+    # Load pretrained model if the path is given
     if pretrained_path is not None:
         model_dict = net.state_dict()
         pretrained_dict = torch.load(pretrained_path)
         pretrained_dict = filter_param_dict(pretrained_dict, pretrained_include, pretrained_exclude)
         new_pretrained_dict = {}
+        # Update the model with weights from the pretrained model where shapes match
         for k, v in pretrained_dict.items():
             if k in model_dict and v.shape == model_dict[k].shape:
                 new_pretrained_dict[k] = v        
@@ -202,13 +217,16 @@ def train(config_path,
             print(k, v.shape)
         model_dict.update(new_pretrained_dict) 
         net.load_state_dict(model_dict)
+        # Freeze parameters if specified
         freeze_params_v2(dict(net.named_parameters()), freeze_include, freeze_exclude)
+        # Reset global step and metrics in case of fine-tuning from pretrained model
         net.clear_global_step()
         net.clear_metrics()
-    if multi_gpu:
+    if multi_gpu:  # Set up DataParallel if multiple GPUs are being used
         net_parallel = torch.nn.DataParallel(net)
     else:
         net_parallel = net
+    # Set up the optimizer according to the configuration
     optimizer_cfg = train_cfg.optimizer
     loss_scale = train_cfg.loss_scale_factor
     fastai_optimizer = optimizer_builder.build(
@@ -216,8 +234,10 @@ def train(config_path,
         net,
         mixed=False,
         loss_scale=loss_scale)
+    # Set dynamic loss scale if configured
     if loss_scale < 0:
         loss_scale = "dynamic"
+    # Set up the learning rate scheduler, enable mixed precision training if specified
     if train_cfg.enable_mixed_precision:
         max_num_voxels = input_cfg.preprocess.max_number_of_voxels * input_cfg.batch_size
         assert max_num_voxels < 65535, "spconv fp16 training only support this"
@@ -230,15 +250,19 @@ def train(config_path,
         net.metrics_to_float()
     else:
         amp_optimizer = fastai_optimizer
+    # Try to restore the latest checkpoints for the optimizer (if any)
     torchplus.train.try_restore_latest_checkpoints(model_dir,
                                                    [fastai_optimizer])
+    # Initialize the learning rate scheduler
     lr_scheduler = lr_scheduler_builder.build(optimizer_cfg, amp_optimizer,
                                               train_cfg.steps)
+    # Determine the data type for tensors based on whether mixed precision is configured
     if train_cfg.enable_mixed_precision:
         float_dtype = torch.float16
     else:
         float_dtype = torch.float32
 
+    # Prepare for multi-gpu training by setting the appropriate collate function and number of GPUs
     if multi_gpu:
         num_gpu = torch.cuda.device_count()
         print(f"MULTI-GPU: use {num_gpu} gpu")
@@ -250,6 +274,7 @@ def train(config_path,
     ######################
     # PREPARE INPUT
     ######################
+    # Instantiate a dataset reader for training data
     dataset = input_reader_builder.build(
         input_cfg,
         model_cfg,
@@ -257,6 +282,7 @@ def train(config_path,
         voxel_generator=voxel_generator,
         target_assigner=target_assigner,
         multi_gpu=multi_gpu)
+    # Instantiate a dataset reader for evaluation data
     eval_dataset = input_reader_builder.build(
         eval_input_cfg,
         model_cfg,
@@ -264,93 +290,108 @@ def train(config_path,
         voxel_generator=voxel_generator,
         target_assigner=target_assigner)
 
+    # Create the DataLoader for the training dataset, with defined collate function and other parameters
     dataloader = torch.utils.data.DataLoader(
         dataset,
-        batch_size=input_cfg.batch_size * num_gpu,
-        shuffle=True,
-        num_workers=input_cfg.preprocess.num_workers * num_gpu,
-        pin_memory=False,
-        collate_fn=collate_fn,
-        worker_init_fn=_worker_init_fn,
-        drop_last=not multi_gpu)
+        batch_size=input_cfg.batch_size * num_gpu,  # Adjust batch size for multiple GPUs if enabled
+        shuffle=True,  # Shuffle the training data
+        num_workers=input_cfg.preprocess.num_workers * num_gpu,  # Number of subprocesses for data loading
+        pin_memory=False,  # Whether to use pinned memory
+        collate_fn=collate_fn,  # Function to merge a list of samples into mini-batch
+        worker_init_fn=_worker_init_fn,  # Custom function to initialize worker subprocesses
+        drop_last=not multi_gpu)  # Drop the last incomplete batch if it's not multi-GPU training
+
     eval_dataloader = torch.utils.data.DataLoader(
         eval_dataset,
         batch_size=eval_input_cfg.batch_size, # only support multi-gpu train
-        shuffle=False,
-        num_workers=eval_input_cfg.preprocess.num_workers,
-        pin_memory=False,
-        collate_fn=merge_second_batch)
-
+        shuffle=False,  # Evaluation data is not shuffled
+        num_workers=eval_input_cfg.preprocess.num_workers,  # Number of subprocesses for evaluation data loading
+        pin_memory=False,  # Usage of pinned memory for evaluation data
+        collate_fn=merge_second_batch)  # Function to merge samples for evaluation data
     ######################
     # TRAINING
     ######################
+    # Initialize an object to handle simple logging for the model
     model_logging = SimpleModelLog(model_dir)
     model_logging.open()
-    model_logging.log_text(proto_str + "\n", 0, tag="config")
+    model_logging.log_text(proto_str + "\n", 0, tag="config")  # Write the model config to the log
+
+    # Retrieve the starting step of the training, total number of steps, and the interval for evaluation
     start_step = net.get_global_step()
     total_step = train_cfg.steps
     t = time.time()
     steps_per_eval = train_cfg.steps_per_eval
     clear_metrics_every_epoch = train_cfg.clear_metrics_every_epoch
 
+    # Commence the optimization process with gradient set to zero
     amp_optimizer.zero_grad()
-    step_times = []
-    step = start_step
+    step_times = []  # To track the time taken for each step
+    step = start_step  # Initialize current step with the starting step
+
+    # Begin the main training loop
     try:
         while True:
+            # The content within this while loop constitutes the steps within a single epoch
             if clear_metrics_every_epoch:
-                net.clear_metrics()
+                net.clear_metrics() # Clear metrics after each epoch if specified
+
+            # Iterate over the training data using the DataLoader
             for example in dataloader:
-                lr_scheduler.step(net.get_global_step())
-                time_metrics = example["metrics"]
-                example.pop("metrics")
-                example_torch = example_convert_to_torch(example, float_dtype)
+                lr_scheduler.step(net.get_global_step())  # Update the learning rate scheduler
+                time_metrics = example["metrics"]  # Extract timing metrics if available
+                example.pop("metrics")  # Remove metrics from the example to clean up data
+                example_torch = example_convert_to_torch(example, float_dtype)  # Convert data to torch tensors
 
                 batch_size = example["anchors"].shape[0]
 
                 ret_dict = net_parallel(example_torch)
-                cls_preds = ret_dict["cls_preds"]
-                loss = ret_dict["loss"].mean()
-                cls_loss_reduced = ret_dict["cls_loss_reduced"].mean()
-                loc_loss_reduced = ret_dict["loc_loss_reduced"].mean()
-                cls_pos_loss = ret_dict["cls_pos_loss"].mean()
-                cls_neg_loss = ret_dict["cls_neg_loss"].mean()
-                loc_loss = ret_dict["loc_loss"]
-                cls_loss = ret_dict["cls_loss"]
+                cls_preds = ret_dict["cls_preds"] # Class predictions
+                loss = ret_dict["loss"].mean() # Compute the mean loss
+                cls_loss_reduced = ret_dict["cls_loss_reduced"].mean() # Compute the mean reduced class loss
+                loc_loss_reduced = ret_dict["loc_loss_reduced"].mean() # Compute the mean reduced location loss
+                cls_pos_loss = ret_dict["cls_pos_loss"].mean() # Compute the mean positive class loss
+                cls_neg_loss = ret_dict["cls_neg_loss"].mean() # Compute the mean negative class loss
+                loc_loss = ret_dict["loc_loss"] # Location loss
+                cls_loss = ret_dict["cls_loss"] # Class loss
                 
-                cared = ret_dict["cared"]
-                labels = example_torch["labels"]
-                if train_cfg.enable_mixed_precision:
+                cared = ret_dict["cared"] # Booleans indicating which indices should be considered for metrics
+                labels = example_torch["labels"] # Ground-truth labels for the batch
+                if train_cfg.enable_mixed_precision: # Backpropagate while managing scaling for mixed precision
                     with amp.scale_loss(loss, amp_optimizer) as scaled_loss:
                         scaled_loss.backward()
-                else:
+                else: # Backpropagate normally
                     loss.backward()
+                # Clip gradients to a maximum norm of 10 to prevent exploding gradients
                 torch.nn.utils.clip_grad_norm_(net.parameters(), 10.0)
-                amp_optimizer.step()
-                amp_optimizer.zero_grad()
-                net.update_global_step()
+                amp_optimizer.step() # Optimizer step to update weights
+                amp_optimizer.zero_grad() # Reset gradients to zero
+                net.update_global_step() # Increment the network's global step count
+                # Update model metrics with the reduced losses and predictions
                 net_metrics = net.update_metrics(cls_loss_reduced,
                                                  loc_loss_reduced, cls_preds,
                                                  labels, cared)
 
-                step_time = (time.time() - t)
-                step_times.append(step_time)
-                t = time.time()
+                step_time = (time.time() - t) # Calculate the time taken for the step
+                step_times.append(step_time) # Append to the list of step times
+                t = time.time() # Reset the clock
+
+                # Collect various metrics from the current training step
                 metrics = {}
-                num_pos = int((labels > 0)[0].float().sum().cpu().numpy())
-                num_neg = int((labels == 0)[0].float().sum().cpu().numpy())
+                num_pos = int((labels > 0)[0].float().sum().cpu().numpy()) # Number of positive labels
+                num_neg = int((labels == 0)[0].float().sum().cpu().numpy()) # Number of negative labels
                 if 'anchors_mask' not in example_torch:
                     num_anchors = example_torch['anchors'].shape[1]
                 else:
                     num_anchors = int(example_torch['anchors_mask'][0].sum())
-                global_step = net.get_global_step()
+                global_step = net.get_global_step() # Current global step
 
+                # Log metrics to the console and file if the step is at the specified display interval
                 if global_step % display_step == 0:
                     if measure_time:
                         for name, val in net.get_avg_time_dict().items():
                             print(f"avg {name} time = {val * 1000:.3f} ms")
 
-                    loc_loss_elem = [
+                    loc_loss_elem = [ # Compute location loss for each element
                         float(loc_loss[:, :, i].sum().detach().cpu().numpy() /
                               batch_size) for i in range(loc_loss.shape[-1])
                     ]
@@ -358,9 +399,10 @@ def train(config_path,
                         "step": global_step,
                         "steptime": np.mean(step_times),
                     }
-                    metrics["runtime"].update(time_metrics[0])
-                    step_times = []
-                    metrics.update(net_metrics)
+                    metrics["runtime"].update(time_metrics[0]) # Add timing metrics to the log
+                    step_times = [] # Reset the list of step times
+                    metrics.update(net_metrics) # Update metrics with the network metrics
+                    # Add additional loss and runtime information to the metrics
                     metrics["loss"]["loc_elem"] = loc_loss_elem
                     metrics["loss"]["cls_pos_rt"] = float(
                         cls_pos_loss.detach().cpu().numpy())
@@ -370,21 +412,22 @@ def train(config_path,
                         dir_loss_reduced = ret_dict["dir_loss_reduced"].mean()
                         metrics["loss"]["dir_rt"] = float(
                             dir_loss_reduced.detach().cpu().numpy())
-
+                    # Additional miscellaneous metrics
                     metrics["misc"] = {
-                        "num_vox": int(example_torch["voxels"].shape[0]),
-                        "num_pos": int(num_pos),
-                        "num_neg": int(num_neg),
-                        "num_anchors": int(num_anchors),
-                        "lr": float(amp_optimizer.lr),
-                        "mem_usage": psutil.virtual_memory().percent,
+                        "num_vox": int(example_torch["voxels"].shape[0]), # Number of voxels in the batch
+                        "num_pos": int(num_pos), # Number of positive labels
+                        "num_neg": int(num_neg), # Number of negative labels
+                        "num_anchors": int(num_anchors), # Number of anchors
+                        "lr": float(amp_optimizer.lr), # Learning rate
+                        "mem_usage": psutil.virtual_memory().percent, # Memory usage
                     }
-                    model_logging.log_metrics(metrics, global_step)
+                    model_logging.log_metrics(metrics, global_step) # Log current metrics to the console and file
 
+                # Save model and perform evaluation at specific steps
                 if global_step % steps_per_eval == 0:
                     torchplus.train.save_models(model_dir, [net, amp_optimizer],
                                                 net.get_global_step())
-                    net.eval()
+                    net.eval() # Put model in evaluation mode
                     result_path_step = result_path / f"step_{net.get_global_step()}"
                     result_path_step.mkdir(parents=True, exist_ok=True)
                     model_logging.log_text("#################################",
@@ -393,35 +436,43 @@ def train(config_path,
                     model_logging.log_text("#################################",
                                         global_step)
                     model_logging.log_text("Generate output labels...", global_step)
-                    t = time.time()
-                    detections = []
+
+                    t = time.time() # Reset the clock
+                    detections = [] # List to store the detection results
                     prog_bar = ProgressBar()
                     net.clear_timer()
                     prog_bar.start((len(eval_dataset) + eval_input_cfg.batch_size - 1)
                                 // eval_input_cfg.batch_size)
+
+                    # Process each batch of evaluation data
                     for example in iter(eval_dataloader):
-                        example = example_convert_to_torch(example, float_dtype)
-                        detections += net(example)
+                        example = example_convert_to_torch(example, float_dtype)  # Convert to Torch tensors
+                        detections += net(example) # Append detections to list
                         prog_bar.print_bar()
 
-                    sec_per_ex = len(eval_dataset) / (time.time() - t)
+                    sec_per_ex = len(eval_dataset) / (time.time() - t) # Calculate time per example
                     model_logging.log_text(
                         f'generate label finished({sec_per_ex:.2f}/s). start eval:',
                         global_step)
+                    # Evaluate and log the results
                     result_dict = eval_dataset.dataset.evaluation(
                         detections, str(result_path_step))
                     for k, v in result_dict["results"].items():
                         model_logging.log_text("Evaluation {}".format(k), global_step)
                         model_logging.log_text(v, global_step)
                     model_logging.log_metrics(result_dict["detail"], global_step)
+                    # Save the detections to a file
                     with open(result_path_step / "result.pkl", 'wb') as f:
                         pickle.dump(detections, f)
-                    net.train()
-                step += 1
-                if step >= total_step:
+
+                    net.train() # Put model back in training mode
+                step += 1 # Increment step counter
+                if step >= total_step: # If reached total steps, exit loop
                     break
-            if step >= total_step:
+            if step >= total_step: # Additional check to ensure training doesn't exceed total steps
                 break
+
+    # Handle exceptions during training, log them, and save the current state
     except Exception as e:
         print(json.dumps(example["metadata"], indent=2))
         model_logging.log_text(str(e), step)
@@ -429,8 +480,10 @@ def train(config_path,
         torchplus.train.save_models(model_dir, [net, amp_optimizer],
                                     step)
         raise e
+    # Ensure logging is tidied up upon exiting the training loop
     finally:
         model_logging.close()
+    # Save final model state at the end of training
     torchplus.train.save_models(model_dir, [net, amp_optimizer],
                                 net.get_global_step())
 
