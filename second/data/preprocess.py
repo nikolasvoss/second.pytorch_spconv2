@@ -138,46 +138,49 @@ def prep_pointcloud(input_dict,
     input_dict format: dataset.get_sensor_data format
 
     """
-    t = time.time()
-    class_names = target_assigner.classes
+    t = time.time() # Reset timer
+    class_names = target_assigner.classes # get class names
     points = input_dict["lidar"]["points"]
     if training:
-        anno_dict = input_dict["lidar"]["annotations"]
-        gt_dict = {
+        anno_dict = input_dict["lidar"]["annotations"] # get lidar annotations
+        gt_dict = { # create ground truth dictionary
             "gt_boxes": anno_dict["boxes"],
             "gt_names": anno_dict["names"],
             "gt_importance": np.ones([anno_dict["boxes"].shape[0]], dtype=anno_dict["boxes"].dtype),
         }
+        # if there is no difficulty in the annotations, fill it with zeros
         if "difficulty" not in anno_dict:
             difficulty = np.zeros([anno_dict["boxes"].shape[0]],
                                   dtype=np.int32)
             gt_dict["difficulty"] = difficulty
         else:
             gt_dict["difficulty"] = anno_dict["difficulty"]
+        # if there is a group id in the annotations, add it to the ground truth dictionary
         if use_group_id and "group_ids" in anno_dict:
             group_ids = anno_dict["group_ids"]
             gt_dict["group_ids"] = group_ids
+    # get calibration if it exists
     calib = None
     if "calib" in input_dict:
         calib = input_dict["calib"]
 
     if reference_detections is not None:
-        assert calib is not None and "image" in input_dict
-        C, R, T = box_np_ops.projection_matrix_to_CRT_kitti(P2)
-        frustums = box_np_ops.get_frustum_v2(reference_detections, C)
+        assert calib is not None and "image" in input_dict # assert that calibration and image exists
+        C, R, T = box_np_ops.projection_matrix_to_CRT_kitti(P2) # get camera matrix
+        frustums = box_np_ops.get_frustum_v2(reference_detections, C) # get frustums
         frustums -= T
         frustums = np.einsum('ij, akj->aki', np.linalg.inv(R), frustums)
         frustums = box_np_ops.camera_to_lidar(frustums, rect, Trv2c)
-        surfaces = box_np_ops.corner_to_surfaces_3d_jit(frustums)
-        masks = points_in_convex_polygon_3d_jit(points, surfaces)
-        points = points[masks.any(-1)]
+        surfaces = box_np_ops.corner_to_surfaces_3d_jit(frustums) #get frustum surfaces
+        masks = points_in_convex_polygon_3d_jit(points, surfaces) # get mask of points in frustum
+        points = points[masks.any(-1)] # get points in frustum by applying mask
 
     if remove_outside_points:
         assert calib is not None
         image_shape = input_dict["image"]["image_shape"]
         points = box_np_ops.remove_outside_points(
             points, calib["rect"], calib["Trv2c"], calib["P2"], image_shape)
-    if remove_environment is True and training:
+    if remove_environment is True and training: # select only the classes that are in the target assigner
         selected = kitti.keep_arrays_by_name(gt_names, target_assigner.classes)
         _dict_select(gt_dict, selected)
         masks = box_np_ops.points_in_rbbox(points, gt_dict["gt_boxes"])
@@ -190,7 +193,7 @@ def prep_pointcloud(input_dict,
         bev_map = simplevis.nuscene_vis(points, boxes_lidar)
         cv2.imshow('pre-noise', bev_map)
         """
-        selected = kitti.drop_arrays_by_name(gt_dict["gt_names"], ["DontCare"])
+        selected = kitti.drop_arrays_by_name(gt_dict["gt_names"], ["DontCare"]) # remove dontcare classes
         _dict_select(gt_dict, selected)
         if remove_unknown:
             remove_mask = gt_dict["difficulty"] == -1
@@ -201,20 +204,20 @@ def prep_pointcloud(input_dict,
             """
             keep_mask = np.logical_not(remove_mask)
             _dict_select(gt_dict, keep_mask)
-        gt_dict.pop("difficulty")
-        if min_points_in_gt > 0:
+        gt_dict.pop("difficulty") # remove difficulty from ground truth dictionary
+        if min_points_in_gt > 0: # remove ground truths with less than min_points_in_gt points
             # points_count_rbbox takes 10ms with 10 sweeps nuscenes data
             point_counts = box_np_ops.points_count_rbbox(points, gt_dict["gt_boxes"])
             mask = point_counts >= min_points_in_gt
             _dict_select(gt_dict, mask)
-        gt_boxes_mask = np.array(
+        gt_boxes_mask = np.array( # create mask of ground truth boxes
             [n in class_names for n in gt_dict["gt_names"]], dtype=np.bool_)
         if db_sampler is not None:
             group_ids = None
             if "group_ids" in gt_dict:
                 group_ids = gt_dict["group_ids"]
 
-            sampled_dict = db_sampler.sample_all(
+            sampled_dict = db_sampler.sample_all( # sample ground truth data
                 root_path,
                 gt_dict["gt_boxes"],
                 gt_dict["gt_names"],
@@ -228,6 +231,8 @@ def prep_pointcloud(input_dict,
                 sampled_gt_boxes = sampled_dict["gt_boxes"]
                 sampled_points = sampled_dict["points"]
                 sampled_gt_masks = sampled_dict["gt_masks"]
+
+                # concatenate the sampled ground truth data with the original ground truth data
                 gt_dict["gt_names"] = np.concatenate(
                     [gt_dict["gt_names"], sampled_gt_names], axis=0)
                 gt_dict["gt_boxes"] = np.concatenate(
@@ -243,7 +248,7 @@ def prep_pointcloud(input_dict,
                     gt_dict["group_ids"] = np.concatenate(
                         [gt_dict["group_ids"], sampled_group_ids])
 
-                if remove_points_after_sample:
+                if remove_points_after_sample: # remove points that are in the sampled ground truth boxes
                     masks = box_np_ops.points_in_rbbox(points,
                                                        sampled_gt_boxes)
                     points = points[np.logical_not(masks.any(-1))]
@@ -254,7 +259,7 @@ def prep_pointcloud(input_dict,
         if "group_ids" in gt_dict:
             group_ids = gt_dict["group_ids"]
 
-        prep.noise_per_object_v3_(
+        prep.noise_per_object_v3_( # add noise to ground truth data
             gt_dict["gt_boxes"],
             points,
             gt_boxes_mask,
@@ -268,7 +273,7 @@ def prep_pointcloud(input_dict,
         # for k, v in gt_dict.items():
         #     print(k, v.shape)
         _dict_select(gt_dict, gt_boxes_mask)
-        gt_classes = np.array(
+        gt_classes = np.array( #
             [class_names.index(n) + 1 for n in gt_dict["gt_names"]],
             dtype=np.int32)
         gt_dict["gt_classes"] = gt_classes
