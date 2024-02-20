@@ -45,8 +45,10 @@ def second_box_encode(boxes,
     """
     # need to convert boxes to z-center format
     box_ndim = anchors.shape[-1]
+    # TODO: problem: the following code only works if anchors and boxes have the same dim=1, everything else fails
     cas, cgs = [], []
     if box_ndim > 7:
+        # split all values from axis 1 to xa, ya, za, wa, la, ha, ra. additional values should go into cas
         xa, ya, za, wa, la, ha, ra, *cas = np.split(anchors, box_ndim, axis=1)
         xg, yg, zg, wg, lg, hg, rg, *cgs = np.split(boxes, box_ndim, axis=1)
     else:

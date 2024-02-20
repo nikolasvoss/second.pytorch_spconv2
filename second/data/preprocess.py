@@ -383,7 +383,7 @@ def prep_pointcloud(input_dict,
         targets_dict = target_assigner.assign(
             anchors,
             anchors_dict,
-            gt_dict["gt_boxes"],
+            gt_dict["gt_boxes"][:,:7], # TODO: @Nikolas: check if this is correct
             anchors_mask,
             gt_classes=gt_dict["gt_classes"],
             gt_names=gt_dict["gt_names"],
