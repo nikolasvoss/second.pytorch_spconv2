@@ -718,7 +718,7 @@ def _fill_trainval_infos(nusc,
 
 
 # Definiert eine Funktion zum Erstellen von Informationsdateien für NuScenes-Datensätze
-def create_nuscenes_infos(root_path, version="v1.0-trainval", max_sweeps=10):
+def create_nuscenes_infos(root_path, version="v1.0-trainval", max_sweeps=10, output_path=None):
     from nuscenes.nuscenes import NuScenes
     nusc = NuScenes(version=version, dataroot=root_path, verbose=True)
     from nuscenes.utils import splits
@@ -739,8 +739,10 @@ def create_nuscenes_infos(root_path, version="v1.0-trainval", max_sweeps=10):
         raise ValueError("unknown")
     # Überprüft, ob es sich um einen Testdatensatz handelt, basierend darauf, ob 'test' im Versionsnamen enthalten ist
     test = "test" in version
-    # Konvertiert den root Pfad in ein Pathlib-Path-Objekt
-    root_path = Path(root_path)
+    # Konvertiert den Pfad in ein Pathlib-Path-Objekt
+    if output_path is None:
+        output_path = root_path
+    output_path = Path(output_path)
     # Ruft eine Liste der verfügbaren Szenen ab
     available_scenes = _get_available_scenes(nusc)
     # Erstellt eine Liste von Namen verfügbarer Szenen
@@ -780,7 +782,7 @@ def create_nuscenes_infos(root_path, version="v1.0-trainval", max_sweeps=10):
             "infos": train_nusc_infos,
             "metadata": metadata,
         }
-        with open(root_path / "infos_test.pkl", 'wb') as f:
+        with open(output_path / "infos_test.pkl", 'wb') as f:
             pickle.dump(data, f)
     else:
         # Ausgabe von Informationen über die Anzahl der Trainings- und Validierungsbeispiele
@@ -792,11 +794,11 @@ def create_nuscenes_infos(root_path, version="v1.0-trainval", max_sweeps=10):
             "infos": train_nusc_infos,
             "metadata": metadata,
         }
-        with open(root_path / "infos_train.pkl", 'wb') as f:
+        with open(output_path / "infos_train.pkl", 'wb') as f:
             pickle.dump(data, f)
         # Schreibt Validierungsdaten in eine separate Datei
         data["infos"] = val_nusc_infos
-        with open(root_path / "infos_val.pkl", 'wb') as f:
+        with open(output_path / "infos_val.pkl", 'wb') as f:
             pickle.dump(data, f)
 
 
