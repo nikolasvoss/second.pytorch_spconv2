@@ -110,7 +110,7 @@ def create_target_np(all_anchors,
         gt_to_anchor_max = anchor_by_gt_overlap[gt_to_anchor_argmax,
                                                 np.arange(anchor_by_gt_overlap.
                                                           shape[1])]
-        # must remove gt which doesn't match any anchor.
+        # remove gt which doesn't match any anchor.
         empty_gt_mask = gt_to_anchor_max == 0
         gt_to_anchor_max[empty_gt_mask] = -1
         """
@@ -126,6 +126,7 @@ def create_target_np(all_anchors,
             anchor_by_gt_overlap == gt_to_anchor_max)[0]
         # Fg label: for each gt use anchors with highest overlap
         # (including ties)
+        # TODO: Error, gt_inds_force do not match gt_classes indices
         gt_inds_force = anchor_to_gt_argmax[anchors_with_max_overlap]
         labels[anchors_with_max_overlap] = gt_classes[gt_inds_force]
         gt_ids[anchors_with_max_overlap] = gt_inds_force
