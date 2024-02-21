@@ -201,7 +201,7 @@ def train(config_path,
     # Print the total number of parameters in the network
     print("num parameters:", len(list(net.parameters())))
     # Try to restore the latest checkpoints (if any)
-    torchplus.train.try_restore_latest_checkpoints(model_dir, [net])
+    #torchplus.train.try_restore_latest_checkpoints(model_dir, [net])
     # Load pretrained model if the path is given
     if pretrained_path is not None:
         model_dict = net.state_dict()
@@ -251,8 +251,8 @@ def train(config_path,
     else:
         amp_optimizer = fastai_optimizer
     # Try to restore the latest checkpoints for the optimizer (if any)
-    torchplus.train.try_restore_latest_checkpoints(model_dir,
-                                                   [fastai_optimizer])
+    # torchplus.train.try_restore_latest_checkpoints(model_dir,
+    #                                                [fastai_optimizer])
     # Initialize the learning rate scheduler
     lr_scheduler = lr_scheduler_builder.build(optimizer_cfg, amp_optimizer,
                                               train_cfg.steps)
