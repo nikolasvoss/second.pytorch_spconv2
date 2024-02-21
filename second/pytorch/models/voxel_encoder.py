@@ -220,9 +220,11 @@ class SimpleVoxel(nn.Module):
     def forward(self, features, num_voxels, coors):
         # features: [concated_num_points, num_voxel_size, 3(4)]
         # num_voxels: [concated_num_points]
+
+        # sum all points in each voxel and divide by points number for each voxel
         points_mean = features[:, :, :self.num_input_features].sum(
             dim=1, keepdim=False) / num_voxels.type_as(features).view(-1, 1)
-        return points_mean.contiguous()
+        return points_mean.contiguous() # contiguous() is a memory optimization
 
 @register_vfe
 class SimpleVoxelRadius(nn.Module):

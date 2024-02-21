@@ -141,7 +141,7 @@ def prep_pointcloud(input_dict,
     t = time.time() # Reset timer
     class_names = target_assigner.classes # get class names
     points = input_dict["lidar"]["points"]
-    # check if the points have a shape of (xxx, 3), if not, reshape it and generate warning
+    # TODO: dirty fix: check if the points have a shape of (xxx, 3), if not, reshape it and generate warning
     if points.shape[1] != 3:
         print("points shape should be (N, 3), but got ", points.shape)
         print("The points shape will be forced to (N, 3)")
@@ -378,12 +378,14 @@ def prep_pointcloud(input_dict,
     example["gt_names"] = gt_dict["gt_names"]
     # voxel_labels = box_np_ops.assign_label_to_voxel(gt_boxes, coordinates,
     #                                                 voxel_size, coors_range)
+    # TODO: @Nikolas: check if this is correct. I think this takes the correct angle for z-axis
+    gt_dict["gt_boxes"] = gt_dict["gt_boxes"][:, [0, 1, 2, 3, 4, 5, 8]]
     if create_targets:
         t1 = time.time()
         targets_dict = target_assigner.assign(
             anchors,
             anchors_dict,
-            gt_dict["gt_boxes"][:,:7], # TODO: @Nikolas: check if this is correct
+            gt_dict["gt_boxes"],
             anchors_mask,
             gt_classes=gt_dict["gt_classes"],
             gt_names=gt_dict["gt_names"],

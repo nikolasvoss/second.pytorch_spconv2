@@ -323,6 +323,7 @@ class VoxelNet(nn.Module):
             }
         """
         self.start_timer("voxel_feature_extractor")
+        #coors = coors[:, 1:] # TODO: this is a hack.
         voxel_features = self.voxel_feature_extractor(voxels, num_points,
                                                       coors)
         self.end_timer("voxel_feature_extractor")
@@ -330,6 +331,7 @@ class VoxelNet(nn.Module):
         self.start_timer("middle forward")
         spatial_features = self.middle_feature_extractor(
             voxel_features, coors, batch_size)
+        # spatial_features: [N, C*D, H, W], this should result in [1] = rpn.num_input_features = 128
         self.end_timer("middle forward")
         self.start_timer("rpn forward")
         preds_dict = self.rpn(spatial_features)
