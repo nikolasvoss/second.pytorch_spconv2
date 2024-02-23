@@ -337,6 +337,16 @@ def train(config_path,
 
             # Iterate over the training data using the DataLoader
             for example in dataloader: # TODO: rename example to batch
+                # contents of example:
+                # voxels:(60000,45,3) (num_voxels, points in voxel, xyz - Point-Location)
+                # num_points:(60000) (points in each voxel)
+                # coordinates:(60000,4) ( num_voxels, batch+voxel location xyz)
+                # num_voxels:(3,1) (TODO: total number of voxels per batch?)
+                # anchors:(3,62500,7) (TODO: ?, num_anchors, anchor attributes: xyz+wlh+theta)
+                # gt_names:(21) (ground truth names)
+                # labels:(3,62500) (TODO: ?, num_anchors), labels for the corresponding anchors
+                # reg_targets:(3,62500,7) (TODO: ?, num_anchors, targets for anchors?)
+                # importance:(3,62500) (TODO: ?, num_anchors) importance given to each anchor
                 lr_scheduler.step(net.get_global_step())  # Update the learning rate scheduler
                 time_metrics = example["metrics"]  # Extract timing metrics if available
                 example.pop("metrics")  # Remove metrics from the example to clean up data

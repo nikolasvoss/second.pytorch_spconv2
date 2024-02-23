@@ -113,6 +113,7 @@ class VoxelFeatureExtractor(nn.Module):
     def forward(self, features, num_voxels, coors):
         # features: [concated_num_points, num_voxel_size, 3(4)]
         # num_voxels: [concated_num_points]
+
         points_mean = features[:, :, :3].sum(
             dim=1, keepdim=True) / num_voxels.type_as(features).view(-1, 1, 1)
         features_relative = features[:, :, :3] - points_mean
@@ -221,6 +222,13 @@ class SimpleVoxel(nn.Module):
         # features: [concated_num_points, num_voxel_size, 3(4)]
         # num_voxels: [concated_num_points]
 
+        # added by @Nikolas
+        # features: [num_voxels, max_num_points_per_voxel, 3?] TODO: what is the content?
+        # guess: dim0: one field for each voxel
+        #        dim1: actual points in voxel with size max_num_points_per_voxel
+        #        dim2: TODO: are these coordinates or smth else?
+
+        # num_voxels: [points_in_voxel] -> number of points in each voxel TODO: is this correct?
         # sum all points in each voxel and divide by points number for each voxel
         points_mean = features[:, :, :self.num_input_features].sum(
             dim=1, keepdim=False) / num_voxels.type_as(features).view(-1, 1)

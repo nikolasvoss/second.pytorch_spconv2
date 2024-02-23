@@ -323,7 +323,6 @@ class VoxelNet(nn.Module):
             }
         """
         self.start_timer("voxel_feature_extractor")
-        #coors = coors[:, 1:] # TODO: this is a hack.
         voxel_features = self.voxel_feature_extractor(voxels, num_points,
                                                       coors)
         self.end_timer("voxel_feature_extractor")
@@ -359,7 +358,8 @@ class VoxelNet(nn.Module):
             coors = torch.cat(coors_list, dim=0)
         batch_anchors = example["anchors"]
         batch_size_dev = batch_anchors.shape[0]
-        # features: [num_voxels, max_num_points_per_voxel, 7]
+        # anchors: [num_batches, num_anchors, [x,y,z, dx, dy, dz, theta]]
+        # voxels: [num_voxels, max_num_points_per_voxel, xyz]
         # num_points: [num_voxels]
         # coors: [num_voxels, 4]
         preds_dict = self.network_forward(voxels, num_points, coors, batch_size_dev)
