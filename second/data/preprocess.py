@@ -142,10 +142,10 @@ def prep_pointcloud(input_dict,
     class_names = target_assigner.classes # get class names
     points = input_dict["lidar"]["points"]
     # TODO: dirty fix: check if the points have a shape of (xxx, 3), if not, reshape it and generate warning
-    if points.shape[1] != 3:
-        print("points shape should be (N, 3), but got ", points.shape)
-        print("The points shape will be forced to (N, 3)")
-        points = points[:, :3]
+    # if points.shape[1] != 3:
+    #     print("points shape should be (N, 3), but got ", points.shape)
+    #     print("The points shape will be forced to (N, 3)")
+    #     points = points[:, :3]
 
     if training:
         anno_dict = input_dict["lidar"]["annotations"] # get lidar annotations
@@ -318,6 +318,8 @@ def prep_pointcloud(input_dict,
     # [352, 400]
     t1 = time.time()
     if not multi_gpu:
+        # TODO: add logic to use intensity, currently fails with
+        # "num_features == voxels.dim(2) assert faild. your points num features doesn't equal to voxel." in C-function
         voxels, coordinates, num_points = voxel_generator(torch.tensor(points))
         num_voxels = np.array([voxels.shape[0]], dtype=np.int64)
     else:

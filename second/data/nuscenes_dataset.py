@@ -184,9 +184,10 @@ class NuScenesDataset(Dataset):
             points_sweep[:, :3] += sweep["sweep2lidar_translation"]
             points_sweep[:, 4] = ts - sweep_ts
             sweep_points_list.append(points_sweep)
-
-        points = np.concatenate(sweep_points_list, axis=0)[:, [0, 1, 2, 4]]
-
+        # TODO @Nikolas: Is this the place where intensity is thrown out?
+        # points = np.concatenate(sweep_points_list, axis=0)[:, [0, 1, 2, 4]]
+        # hack: keeping intensity and remove timestamp(?)(is 0 anyway)
+        points = np.concatenate(sweep_points_list, axis=0)[:, [0, 1, 2, 3]]
         if read_test_image:
             if Path(info["cam_front_path"]).exists():
                 with open(str(info["cam_front_path"]), 'rb') as f:
@@ -203,7 +204,7 @@ class NuScenesDataset(Dataset):
             mask = info["num_lidar_pts"] > 0
             gt_boxes = info["gt_boxes"][mask]
             if self._with_velocity:
-                gt_velocity = info["gt_velocity"][mask]
+                gt_velocity = info["gt_boxes_velocity"][mask]
                 nan_mask = np.isnan(gt_velocity[:, 0])
                 gt_velocity[nan_mask] = [0.0, 0.0]
                 gt_boxes = np.concatenate([gt_boxes, gt_velocity], axis=-1)
