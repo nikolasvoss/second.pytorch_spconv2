@@ -149,7 +149,7 @@ def train(config_path,
     """train a VoxelNet model specified by a config file.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+    torch.cuda.empty_cache()
     # Ensure the model directory is an absolute path
     model_dir = str(Path(model_dir).resolve())
     # If 'create_folder' flag is set, make a new folder if necessary
@@ -189,6 +189,7 @@ def train(config_path,
     model_cfg = config.model.second
     train_cfg = config.train_config
 
+    torch.cuda.empty_cache()
     # Build the network and move it to the device (GPU or CPU)
     net = build_network(model_cfg, measure_time).to(device)
     # if train_cfg.enable_mixed_precision:
