@@ -142,6 +142,7 @@ def prep_pointcloud(input_dict,
     class_names = target_assigner.classes # get class names
     points = input_dict["lidar"]["points"]
     # TODO: dirty fix: check if the points have a shape of (xxx, 3), if not, reshape it and generate warning
+    # the dimension will later be compared against num_point_features in voxel_generator. change in voxel_generator.py if needed.
     # if points.shape[1] != 3:
     #     print("points shape should be (N, 3), but got ", points.shape)
     #     print("The points shape will be forced to (N, 3)")
