@@ -319,12 +319,12 @@ def prep_pointcloud(input_dict,
     # [352, 400]
     t1 = time.time()
     if not multi_gpu:
-        # TODO: add logic to use intensity, currently fails with
+        # TODO: add logic to use intensity, currently fails with:
         # "num_features == voxels.dim(2) assert faild. your points num features doesn't equal to voxel." in C-function
         voxels, coordinates, num_points = voxel_generator(torch.tensor(points))
         num_voxels = np.array([voxels.shape[0]], dtype=np.int64)
     else:
-        print("Currently not support multi_gpu")
+        print("Multi-GPU currently not supported.")
         raise NotImplementedError
         # res = voxel_generator.generate_multi_gpu(
         #     points, max_number_of_voxels)

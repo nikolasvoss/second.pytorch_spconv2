@@ -322,9 +322,12 @@ class VoxelNet(nn.Module):
                 dir_cls_preds: ...
             }
         """
+        # The network is being built in second_builder.py
+        # output_shape of middle extractor is [1] + grid_size[::-1] + [vfe_num_filters[-1]]
+
         self.start_timer("voxel_feature_extractor")
-        voxel_features = self.voxel_feature_extractor(voxels, num_points,
-                                                      coors)
+        voxel_features = self.voxel_feature_extractor(voxels, num_points, coors)
+        # voxels [N, max_points_per_voxel, xyzi] (20000, 10, 4) -> voxel_features [N, num_filters[1]] (20000, 32)
         self.end_timer("voxel_feature_extractor")
 
         self.start_timer("middle forward")
@@ -333,6 +336,7 @@ class VoxelNet(nn.Module):
         # spatial_features: [N, C*D, H, W], this should result in [1] = rpn.num_input_features = 128
         self.end_timer("middle forward")
         self.start_timer("rpn forward")
+        # weights of rpn: [num_filters, num_input_features, 3, 3] Kernel size?
         preds_dict = self.rpn(spatial_features)
         self.end_timer("rpn forward")
         return preds_dict

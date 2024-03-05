@@ -52,8 +52,7 @@ class SparseMiddleExtractor(nn.Module):
         # Calculate the required sparse shape as a numpy array
         sparse_shape = np.array(output_shape[1:4]) + [1, 0, 0]
         # sparse_shape[0] = 11
-        # Debug the sparse_shape by printing it out
-        print(sparse_shape)
+        print(f'Sparse shape: {sparse_shape}')
         self.sparse_shape = sparse_shape
         # Create an input layer for sparse convolutional neural networks
         self.voxel_output_shape = output_shape
@@ -240,7 +239,10 @@ class SpMiddleFHD(nn.Module):
         ret = self.middle_conv(ret)
         # torch.cuda.synchronize()
         # print("spconv forward time", time.time() - t)
-        # Convert the sparse tensor back to a dense format
+
+        # .dense() calls scatter_nd to convert the dense tensor back to a sparse tensor.
+        # https://www.tensorflow.org/api_docs/python/tf/scatter_nd
+        # Is this name stupid or am I missing something?
         ret = ret.dense()
 
         N, C, D, H, W = ret.shape
